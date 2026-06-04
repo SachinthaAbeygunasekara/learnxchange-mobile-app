@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1047451116542",
+    "project_id": "learnxchange-781d0",
+    "storage_bucket": "learnxchange-781d0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1047451116542:android:23be7aad24fdec291856af",
+        "android_client_info": {
+          "package_name": "com.example.learnxchange"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDT_6QWyeR4swmBm_MdkylDEsH6LwAWev8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
