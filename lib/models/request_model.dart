@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum RequestStatus { pending, accepted, rejected }
+enum RequestStatus { pending, accepted, rejected, completed }
 
 class RequestModel {
   final String id;
@@ -14,6 +14,8 @@ class RequestModel {
   final String skillWanted;  // What the sender gets
   final RequestStatus status;
   final DateTime timestamp;
+  final bool isRatedBySender;
+  final bool isRatedByReceiver;
 
   RequestModel({
     required this.id,
@@ -27,6 +29,8 @@ class RequestModel {
     required this.skillWanted,
     required this.status,
     required this.timestamp,
+    this.isRatedBySender = false,
+    this.isRatedByReceiver = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +46,8 @@ class RequestModel {
       'skillWanted': skillWanted,
       'status': status.name,
       'timestamp': Timestamp.fromDate(timestamp),
+      'isRatedBySender': isRatedBySender,
+      'isRatedByReceiver': isRatedByReceiver,
     };
   }
 
@@ -58,6 +64,8 @@ class RequestModel {
       skillWanted: map['skillWanted'] ?? '',
       status: RequestStatus.values.byName(map['status'] ?? 'pending'),
       timestamp: (map['timestamp'] as Timestamp).toDate(),
+      isRatedBySender: map['isRatedBySender'] ?? false,
+      isRatedByReceiver: map['isRatedByReceiver'] ?? false,
     );
   }
 }
