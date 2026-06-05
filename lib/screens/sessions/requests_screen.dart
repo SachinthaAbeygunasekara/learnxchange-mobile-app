@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/request_model.dart';
+import 'package:learnxchange/models/session_model.dart';
 import 'package:learnxchange/screens/chat/chat_screen.dart';
 import 'package:learnxchange/services/request_service.dart';
+import 'package:learnxchange/services/session_service.dart';
+import 'package:intl/intl.dart';
 
 class RequestsScreen extends StatelessWidget {
   const RequestsScreen({super.key});
@@ -213,6 +217,102 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
+  void _showScheduleDialog(BuildContext context) async {
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = const TimeOfDay(hour: 10, minute: 0);
+    final notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Schedule Session'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Date'),
+                  subtitle: Text(DateFormat('EEEE, MMM d, yyyy').format(selectedDate)),
+                  trailing: const Icon(Icons.calendar_today_rounded),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 90)),
+                    );
+                    if (picked != null) setState(() => selectedDate = picked);
+                  },
+                ),
+                ListTile(
+                  title: const Text('Time'),
+                  subtitle: Text(selectedTime.format(context)),
+                  trailing: const Icon(Icons.access_time_rounded),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+                    if (picked != null) setState(() => selectedTime = picked);
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    hintText: 'What will you discuss?',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final scheduledDateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+
+                final session = SessionModel(
+                  id: FirebaseFirestore.instance.collection('sessions').doc().id,
+                  requestId: request.id,
+                  senderId: request.senderId,
+                  receiverId: request.receiverId,
+                  title: 'Learning ${isIncoming ? request.skillWanted : request.skillOffered}',
+                  scheduledDateTime: scheduledDateTime,
+                  status: SessionStatus.scheduled,
+                  notes: notesController.text.trim(),
+                );
+
+                await SessionService().createSession(session);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Session scheduled successfully!'), behavior: SnackBarBehavior.floating),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Schedule'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(request.status);
@@ -313,6 +413,20 @@ class _RequestCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showScheduleDialog(context),
+                icon: const Icon(Icons.event_rounded, size: 18),
+                label: const Text('Schedule Live Session'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: const BorderSide(color: Color(0xFF6366F1)),
+                  foregroundColor: const Color(0xFF6366F1),
+                ),
+              ),
             ),
           ],
 
