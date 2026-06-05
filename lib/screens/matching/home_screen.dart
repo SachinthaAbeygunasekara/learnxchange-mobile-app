@@ -74,10 +74,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HomeView extends StatelessWidget {
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  String _submittedQuery = "";
+  String _selectedCategory = "";
+  double? _minRating;
+  final TextEditingController _searchController = TextEditingController();
+  final MatchingService _matchingService = MatchingService();
+  final UserService _userService = UserService();
+  late Stream<UserModel> _userStream;
+  Future<List<UserModel>>? _matchFuture;
+  UserModel? _lastUser;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _userStream = _userService.getUserData(uid);
+  }
+
+  void _performSearch() {
+    setState(() {
+      _submittedQuery = _searchController.text.trim();
+      _matchFuture = null; // Reset future to trigger reload
+    });
+  }
+
+  Future<List<UserModel>> _getMatches(MatchingService service, UserModel currentUser) {
+    if (_matchFuture != null && _lastUser?.uid == currentUser.uid) {
+      return _matchFuture!;
+    }
+    
+    _lastUser = currentUser;
+    if (_submittedQuery.isEmpty && _selectedCategory.isEmpty && _minRating == null) {
+      _matchFuture = service.findMatches(currentUser);
+    } else {
+      _matchFuture = service.searchUsers(
+        query: _submittedQuery,
+        category: _selectedCategory,
+        minRating: _minRating,
+        currentUser: currentUser,
+      );
+    }
+    return _matchFuture!;
+  }
+
   ImageProvider? _getProfileImage(String photoUrl) {
+    // ... (rest of the helper)
     if (photoUrl.isEmpty) return null;
     if (photoUrl.startsWith('data:image')) {
       try {
@@ -91,14 +140,18 @@ class HomeView extends StatelessWidget {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    final matchingService = MatchingService();
 
     return SafeArea(
       child: StreamBuilder<UserModel>(
-        stream: UserService().getUserData(firebaseUser?.uid ?? ''),
+        stream: _userStream,
         builder: (context, userSnapshot) {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -184,28 +237,80 @@ class HomeView extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(5),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(5),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) => _performSearch(),
+                            onChanged: (value) {
+                              // Only to update UI (like Clear button visibility)
+                              setState(() {});
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Search for skills or people...',
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              icon: GestureDetector(
+                                onTap: _performSearch,
+                                child: const Icon(Icons.search_rounded, color: Color(0xFF6366F1))
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty 
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 20),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _submittedQuery = "";
+                                        _matchFuture = null;
+                                      });
+                                    },
+                                  ) 
+                                : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search for skills or people...',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        icon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () {
+                          _showFilterBottomSheet(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _minRating != null ? const Color(0xFF6366F1) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(5),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.tune_rounded, 
+                            color: _minRating != null ? Colors.white : const Color(0xFF6366F1)
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -215,11 +320,24 @@ class HomeView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: Text(
-                        'Popular Categories',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Popular Categories',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                          if (_selectedCategory.isNotEmpty)
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _selectedCategory = "";
+                                _matchFuture = null;
+                              }),
+                              child: const Text('Clear', style: TextStyle(color: Colors.grey)),
+                            ),
+                        ],
                       ),
                     ),
                     SizedBox(
@@ -240,11 +358,18 @@ class HomeView extends StatelessWidget {
                 ),
               ),
 
-              // Matching Logic
+              // Matching/Search results Logic
               if (currentUser != null)
                 FutureBuilder<List<UserModel>>(
-                  future: matchingService.findMatches(currentUser),
+                  future: _getMatches(_matchingService, currentUser),
                   builder: (context, matchSnapshot) {
+                    String title = 'Recommended for You';
+                    if (_submittedQuery.isNotEmpty || _selectedCategory.isNotEmpty || _minRating != null) {
+                      title = 'Search Results';
+                    } else if (matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty) {
+                      title = 'Perfect Matches Found!';
+                    }
+
                     return SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,12 +380,10 @@ class HomeView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty 
-                                    ? 'Perfect Matches Found!' 
-                                    : 'Recommended for You',
+                                  title,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                 ),
-                                if (matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty)
+                                if (matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty && _submittedQuery.isEmpty && _selectedCategory.isEmpty && _minRating == null)
                                   const Text(
                                     'See All',
                                     style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
@@ -277,15 +400,18 @@ class HomeView extends StatelessWidget {
                              Padding(
                                padding: const EdgeInsets.all(24.0),
                                child: Container(
+                                 width: double.infinity,
                                  padding: const EdgeInsets.all(16),
                                  decoration: BoxDecoration(
                                    color: Colors.indigo.withAlpha(10),
                                    borderRadius: BorderRadius.circular(16),
                                  ),
-                                 child: const Text(
-                                   "No direct matches found yet. Try adding more skills to your profile!",
+                                 child: Text(
+                                   (_submittedQuery.isNotEmpty || _selectedCategory.isNotEmpty || _minRating != null)
+                                      ? "No users found matching your search. Try different keywords!"
+                                      : "No direct matches found yet. Try adding more skills to your profile!",
                                    textAlign: TextAlign.center,
-                                   style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.w500),
+                                   style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.w500),
                                  ),
                                ),
                              )
@@ -317,25 +443,141 @@ class HomeView extends StatelessWidget {
     );
   }
 
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Filters',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _minRating = null;
+                            _matchFuture = null;
+                          });
+                          setModalState(() {});
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Reset'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Minimum Rating',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [1, 2, 3, 4, 5].map((rating) {
+                        final isSelected = _minRating == rating.toDouble();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(rating.toString()),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                              ],
+                            ),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _minRating = selected ? rating.toDouble() : null;
+                                _matchFuture = null;
+                              });
+                              setModalState(() {});
+                            },
+                            selectedColor: const Color(0xFF6366F1).withAlpha(40),
+                            labelStyle: TextStyle(
+                              color: isSelected ? const Color(0xFF6366F1) : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildCategoryItem(IconData icon, String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withAlpha(20),
-              borderRadius: BorderRadius.circular(20),
+    final isSelected = _selectedCategory == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCategory = isSelected ? "" : label;
+          _matchFuture = null;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isSelected ? color : color.withAlpha(20),
+                borderRadius: BorderRadius.circular(20),
+                border: isSelected ? Border.all(color: color, width: 2) : null,
+                boxShadow: isSelected ? [
+                  BoxShadow(color: color.withAlpha(40), blurRadius: 10, offset: const Offset(0, 4))
+                ] : null,
+              ),
+              child: Icon(icon, color: isSelected ? Colors.white : color, size: 30),
             ),
-            child: Icon(icon, color: color, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13, 
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, 
+                color: isSelected ? color : Colors.black87
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

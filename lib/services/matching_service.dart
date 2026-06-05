@@ -63,4 +63,70 @@ class MatchingService {
       return [];
     }
   }
+
+  /// Searches for users based on name or skills, and optionally filters by category and rating.
+  Future<List<UserModel>> searchUsers({
+    required String query,
+    String? category,
+    double? minRating,
+    UserModel? currentUser,
+  }) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore.collection('users').get();
+
+      List<UserModel> allUsers = querySnapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
+          .where((user) => user.uid != currentUser?.uid)
+          .toList();
+
+      return allUsers.where((user) {
+        bool matchesQuery = true;
+        if (query.isNotEmpty) {
+          final lowercaseQuery = query.toLowerCase();
+          matchesQuery = user.name.toLowerCase().contains(lowercaseQuery) ||
+              user.offeredSkills.any((skill) => skill.toLowerCase().contains(lowercaseQuery));
+        }
+
+        bool matchesCategory = true;
+        if (category != null && category.isNotEmpty) {
+          final lowercaseCategory = category.toLowerCase();
+          matchesCategory = user.offeredSkills.any((skill) => 
+            skill.toLowerCase().contains(lowercaseCategory) || 
+            _getCategoryForSkill(skill).toLowerCase() == lowercaseCategory
+          );
+        }
+
+        bool matchesRating = true;
+        if (minRating != null) {
+          matchesRating = user.rating >= minRating;
+        }
+
+        return matchesQuery && matchesCategory && matchesRating;
+      }).toList();
+    } catch (e) {
+      print("Error searching users: $e");
+      return [];
+    }
+  }
+
+  // Helper to map common skills to categories if not explicitly stored
+  String _getCategoryForSkill(String skill) {
+    final s = skill.toLowerCase();
+    if (s.contains('code') || s.contains('python') || s.contains('java') || s.contains('flutter') || s.contains('dart') || s.contains('web') || s.contains('programming')) {
+      return 'Coding';
+    }
+    if (s.contains('design') || s.contains('ui') || s.contains('ux') || s.contains('brush') || s.contains('art') || s.contains('graphic')) {
+      return 'Design';
+    }
+    if (s.contains('language') || s.contains('english') || s.contains('spanish') || s.contains('french') || s.contains('speak')) {
+      return 'Language';
+    }
+    if (s.contains('music') || s.contains('guitar') || s.contains('piano') || s.contains('sing')) {
+      return 'Music';
+    }
+    if (s.contains('photo') || s.contains('camera') || s.contains('video') || s.contains('edit')) {
+      return 'Photo';
+    }
+    return '';
+  }
 }
