@@ -8,6 +8,9 @@ import 'package:learnxchange/screens/chat/chat_screen.dart';
 import 'package:learnxchange/services/request_service.dart';
 import 'package:learnxchange/services/session_service.dart';
 import 'package:intl/intl.dart';
+import 'package:learnxchange/widgets/rating_dialog.dart';
+import 'package:learnxchange/services/user_service.dart';
+import 'package:learnxchange/models/user_model.dart';
 
 class RequestsScreen extends StatelessWidget {
   const RequestsScreen({super.key});
@@ -119,102 +122,36 @@ class _RequestCard extends StatelessWidget {
     return NetworkImage(photo);
   }
 
-  void _showRatingDialog(BuildContext context) {
-    double selectedRating = 5;
-    final commentController = TextEditingController();
+  void _showRatingDialog(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    // We need current user data for the review
+    final currentUser = await UserService().getUserData(uid).first;
+    final partnerId = isIncoming ? request.senderId : request.receiverId;
+    final partnerName = isIncoming ? request.senderName : request.receiverName;
 
-    showDialog(
+    if (!context.mounted) return;
+
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Rate your partner'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('How was your learning experience?'),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    return IconButton(
-                      icon: Icon(
-                        index < selectedRating ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: Colors.amber,
-                        size: 32,
-                      ),
-                      onPressed: () => setState(() => selectedRating = index + 1.0),
-                    );
-                  }),
-                ),
-                Text(
-                  '${selectedRating.toInt()} Stars',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: commentController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Add a comment about your partner...',
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final partnerId = isIncoming ? request.senderId : request.receiverId;
-                final reviewerId = isIncoming ? request.receiverId : request.senderId;
-                final reviewerName = isIncoming ? request.receiverName : request.senderName;
-                final reviewerPhoto = isIncoming ? request.receiverPhoto : request.senderPhoto;
-
-                await RequestService().ratePartner(
-                  requestId: request.id,
-                  reviewerId: reviewerId,
-                  reviewerName: reviewerName,
-                  reviewerPhoto: reviewerPhoto,
-                  partnerId: partnerId,
-                  rating: selectedRating,
-                  comment: commentController.text.trim(),
-                  isSender: !isIncoming,
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Thank you for your feedback!'),
-                      backgroundColor: const Color(0xFF6366F1),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
+      builder: (context) => RatingDialog(
+        currentUser: currentUser,
+        partnerId: partnerId,
+        partnerName: partnerName,
+        requestId: request.id,
+        isSender: !isIncoming,
       ),
     );
+
+    if (result == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Thank you for your feedback!'),
+          backgroundColor: const Color(0xFF6366F1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   void _showScheduleDialog(BuildContext context) async {
