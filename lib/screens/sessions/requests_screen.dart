@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/request_model.dart';
+import 'package:learnxchange/screens/chat/chat_screen.dart';
 import 'package:learnxchange/services/request_service.dart';
 
 class RequestsScreen extends StatelessWidget {
@@ -175,6 +176,34 @@ class _RequestCard extends StatelessWidget {
               _buildSkillInfo('You Get', isIncoming ? request.skillOffered : request.skillWanted, const Color(0xFFEC4899)),
             ],
           ),
+          
+          if (request.status == RequestStatus.accepted) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        otherUserId: isIncoming ? request.senderId : request.receiverId,
+                        otherUserName: isIncoming ? request.senderName : request.receiverName,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                label: const Text('Start Chat'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+
           if (isIncoming && request.status == RequestStatus.pending) ...[
             const SizedBox(height: 16),
             Row(

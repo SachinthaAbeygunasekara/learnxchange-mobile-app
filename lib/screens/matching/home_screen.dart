@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/profile_screen.dart';
 import 'package:learnxchange/screens/sessions/requests_screen.dart';
+import 'package:learnxchange/screens/chat/chat_list_screen.dart';
 import 'package:learnxchange/services/matching_service.dart';
 import 'package:learnxchange/services/user_service.dart';
 import 'package:learnxchange/services/request_service.dart';
@@ -20,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const HomeView(),
-    const Center(child: Text('Discover Screen')),
+    const ChatListScreen(),
     const RequestsScreen(),
     const ProfileScreen(),
   ];
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Discover'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'Messages'),
             BottomNavigationBarItem(icon: Icon(Icons.swap_horiz_rounded), label: 'Requests'),
             BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
           ],
@@ -454,7 +455,7 @@ class _MatchCardState extends State<_MatchCard> {
               _buildSkillBadge('Offers', matchingOffered, const Color(0xFF6366F1)),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.swap_horiz_rounded, color: Colors.grey, size: 20),
+                child: Icon(Icons.swap_horiz, color: Colors.grey, size: 20),
               ),
               _buildSkillBadge('Wants', matchingWanted, const Color(0xFFEC4899)),
             ],
