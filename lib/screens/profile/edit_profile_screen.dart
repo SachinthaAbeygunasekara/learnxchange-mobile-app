@@ -97,13 +97,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully!')),
+            const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = e.toString();
+          // Clean up common prefixes if they exist
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(errorMessage)),
+                ],
+              ),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           );
         }
       } finally {
