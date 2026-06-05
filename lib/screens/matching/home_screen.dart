@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/profile_screen.dart';
+import 'package:learnxchange/screens/sessions/requests_screen.dart';
 import 'package:learnxchange/services/matching_service.dart';
 import 'package:learnxchange/services/user_service.dart';
+import 'package:learnxchange/services/request_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const HomeView(),
     const Center(child: Text('Discover Screen')),
-    const Center(child: Text('Requests Screen')),
+    const RequestsScreen(),
     const ProfileScreen(),
   ];
 
@@ -269,7 +271,7 @@ class HomeView extends StatelessWidget {
                               itemCount: matchSnapshot.data!.length,
                               itemBuilder: (context, index) {
                                 final match = matchSnapshot.data![index];
-                                return _buildMatchCard(
+                                return _MatchCard(
                                   match: match,
                                   currentUser: currentUser,
                                   theme: theme,
@@ -312,20 +314,78 @@ class HomeView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildMatchCard({
-    required UserModel match,
-    required UserModel currentUser,
-    required ThemeData theme,
-  }) {
+class _MatchCard extends StatefulWidget {
+  final UserModel match;
+  final UserModel currentUser;
+  final ThemeData theme;
+
+  const _MatchCard({
+    required this.match,
+    required this.currentUser,
+    required this.theme,
+  });
+
+  @override
+  State<_MatchCard> createState() => _MatchCardState();
+}
+
+class _MatchCardState extends State<_MatchCard> {
+  bool _isSending = false;
+
+  ImageProvider? _getProfileImage(String photoUrl) {
+    if (photoUrl.isEmpty) return null;
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final base64String = photoUrl.split(',').last;
+        return MemoryImage(base64Decode(base64String));
+      } catch (e) {
+        return null;
+      }
+    }
+    return NetworkImage(photoUrl);
+  }
+
+  Future<void> _sendRequest(String skillOffered, String skillWanted) async {
+    setState(() => _isSending = true);
+    try {
+      await RequestService().sendRequest(
+        sender: widget.currentUser,
+        receiver: widget.match,
+        skillOffered: skillOffered,
+        skillWanted: skillWanted,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Request sent to ${widget.match.name}!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send request: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Find specific skill match for display
-    final matchingOffered = match.offeredSkills.firstWhere(
-      (s) => currentUser.wantedSkills.contains(s),
-      orElse: () => match.offeredSkills.first,
+    final matchingOffered = widget.match.offeredSkills.firstWhere(
+      (s) => widget.currentUser.wantedSkills.contains(s),
+      orElse: () => widget.match.offeredSkills.first,
     );
-    final matchingWanted = match.wantedSkills.firstWhere(
-      (s) => currentUser.offeredSkills.contains(s),
-      orElse: () => match.wantedSkills.first,
+    final matchingWanted = widget.match.wantedSkills.firstWhere(
+      (s) => widget.currentUser.offeredSkills.contains(s),
+      orElse: () => widget.match.wantedSkills.first,
     );
 
     return Container(
@@ -349,8 +409,8 @@ class HomeView extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: Colors.grey[100],
-                backgroundImage: _getProfileImage(match.photoUrl),
-                child: match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+                backgroundImage: _getProfileImage(widget.match.photoUrl),
+                child: widget.match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -358,7 +418,7 @@ class HomeView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      match.name,
+                      widget.match.name,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     Row(
@@ -366,12 +426,12 @@ class HomeView extends StatelessWidget {
                         const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          match.rating.toStringAsFixed(1),
+                          widget.match.rating.toStringAsFixed(1),
                           style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '(${match.ratingCount})',
+                          '(${widget.match.ratingCount})',
                           style: TextStyle(color: Colors.grey[400], fontSize: 11),
                         ),
                       ],
@@ -403,7 +463,7 @@ class HomeView extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: _isSending ? null : () => _sendRequest(matchingWanted, matchingOffered),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
                 foregroundColor: Colors.white,
@@ -411,7 +471,9 @@ class HomeView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Send Exchange Request', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: _isSending 
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Send Exchange Request', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
