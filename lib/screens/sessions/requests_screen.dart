@@ -191,7 +191,12 @@ class _RequestCard extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Thank you for your feedback!')),
+                    SnackBar(
+                      content: const Text('Thank you for your feedback!'),
+                      backgroundColor: const Color(0xFF6366F1),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   );
                 }
               },

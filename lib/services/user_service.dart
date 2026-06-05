@@ -85,14 +85,15 @@ class UserService {
     try {
       final bytes = await imageFile.readAsBytes();
       if (bytes.lengthInBytes > 800000) {
-        throw Exception("Image is too large. Please select a smaller photo (under 800KB).");
+        throw "The selected image is too large. Please choose a photo smaller than 800KB.";
       }
       final base64String = base64Encode(bytes);
       final dataUrl = 'data:image/jpeg;base64,$base64String';
       await updatePhotoUrl(uid, dataUrl);
       return dataUrl;
     } catch (e) {
-      throw Exception("Failed to process image: $e");
+      if (e is String) rethrow;
+      throw "We couldn't process your profile picture. Please try a different image.";
     }
   }
 
