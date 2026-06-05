@@ -46,7 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1047451116542',
     projectId: 'learnxchange-781d0',
     authDomain: 'learnxchange-781d0.firebaseapp.com',
-    storageBucket: 'learnxchange-781d0.firebasestorage.app',
+    storageBucket: 'learnxchange-781d0.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
     appId: '1:1047451116542:android:23be7aad24fdec291856af',
     messagingSenderId: '1047451116542',
     projectId: 'learnxchange-781d0',
-    storageBucket: 'learnxchange-781d0.firebasestorage.app',
+    storageBucket: 'learnxchange-781d0.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -62,7 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:1047451116542:ios:09cf8d3ff5a839cf1856af',
     messagingSenderId: '1047451116542',
     projectId: 'learnxchange-781d0',
-    storageBucket: 'learnxchange-781d0.firebasestorage.app',
+    storageBucket: 'learnxchange-781d0.appspot.com',
     iosBundleId: 'com.example.learnxchange',
   );
 
@@ -71,7 +71,7 @@ class DefaultFirebaseOptions {
     appId: '1:1047451116542:ios:09cf8d3ff5a839cf1856af',
     messagingSenderId: '1047451116542',
     projectId: 'learnxchange-781d0',
-    storageBucket: 'learnxchange-781d0.firebasestorage.app',
+    storageBucket: 'learnxchange-781d0.appspot.com',
     iosBundleId: 'com.example.learnxchange',
   );
 
@@ -81,6 +81,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1047451116542',
     projectId: 'learnxchange-781d0',
     authDomain: 'learnxchange-781d0.firebaseapp.com',
-    storageBucket: 'learnxchange-781d0.firebasestorage.app',
+    storageBucket: 'learnxchange-781d0.appspot.com',
   );
 }
