@@ -115,9 +115,103 @@ class _RequestCard extends StatelessWidget {
     return NetworkImage(photo);
   }
 
+  void _showRatingDialog(BuildContext context) {
+    double selectedRating = 5;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Rate your partner'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('How was your learning experience?'),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(
+                        index < selectedRating ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
+                      onPressed: () => setState(() => selectedRating = index + 1.0),
+                    );
+                  }),
+                ),
+                Text(
+                  '${selectedRating.toInt()} Stars',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Add a comment about your partner...',
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final partnerId = isIncoming ? request.senderId : request.receiverId;
+                final reviewerId = isIncoming ? request.receiverId : request.senderId;
+                final reviewerName = isIncoming ? request.receiverName : request.senderName;
+                final reviewerPhoto = isIncoming ? request.receiverPhoto : request.senderPhoto;
+
+                await RequestService().ratePartner(
+                  requestId: request.id,
+                  reviewerId: reviewerId,
+                  reviewerName: reviewerName,
+                  reviewerPhoto: reviewerPhoto,
+                  partnerId: partnerId,
+                  rating: selectedRating,
+                  comment: commentController.text.trim(),
+                  isSender: !isIncoming,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Thank you for your feedback!')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(request.status);
+    final bool alreadyRated = isIncoming ? request.isRatedByReceiver : request.isRatedBySender;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -179,24 +273,54 @@ class _RequestCard extends StatelessWidget {
           
           if (request.status == RequestStatus.accepted) ...[
             const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            otherUserId: isIncoming ? request.senderId : request.receiverId,
+                            otherUserName: isIncoming ? request.senderName : request.receiverName,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                    label: const Text('Chat'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => RequestService().updateRequestStatus(request.id, RequestStatus.completed),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Mark Done'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          if (request.status == RequestStatus.completed && !alreadyRated) ...[
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(
-                        otherUserId: isIncoming ? request.senderId : request.receiverId,
-                        otherUserName: isIncoming ? request.senderName : request.receiverName,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                label: const Text('Start Chat'),
+                onPressed: () => _showRatingDialog(context),
+                icon: const Icon(Icons.star_rounded, size: 18),
+                label: const Text('Rate your partner'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: Colors.amber,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -253,6 +377,7 @@ class _RequestCard extends StatelessWidget {
       case RequestStatus.pending: return Colors.orange;
       case RequestStatus.accepted: return Colors.green;
       case RequestStatus.rejected: return Colors.red;
+      case RequestStatus.completed: return Colors.blue;
     }
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:learnxchange/models/user_model.dart';
+import 'package:learnxchange/models/review_model.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -32,22 +33,62 @@ class UserService {
     });
   }
 
+  // Update user rating logic
+  Future<void> updateUserRating(String uid, double newRating) async {
+    final userRef = _firestore.collection('users').doc(uid);
+    
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      if (!snapshot.exists) return;
+
+      final userData = UserModel.fromMap(snapshot.data()!);
+      
+      double currentRating = userData.rating;
+      int currentCount = userData.ratingCount;
+      
+      double totalRatingScore = (currentRating * currentCount) + newRating;
+      int newCount = currentCount + 1;
+      double newAverageRating = totalRatingScore / newCount;
+
+      transaction.update(userRef, {
+        'rating': newAverageRating,
+        'ratingCount': newCount,
+      });
+    });
+  }
+
+  // Add review to a user
+  Future<void> addUserReview(String targetUid, ReviewModel review) async {
+    await _firestore
+        .collection('users')
+        .doc(targetUid)
+        .collection('reviews')
+        .doc(review.id)
+        .set(review.toMap());
+  }
+
+  // Get user reviews stream
+  Stream<List<ReviewModel>> getUserReviews(String uid) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('reviews')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ReviewModel.fromMap(doc.data()))
+            .toList());
+  }
+
   // Workaround: Convert image to Base64 and store in Firestore
   Future<String> uploadProfileImage(String uid, File imageFile) async {
     try {
-      // 1. Read file as bytes
       final bytes = await imageFile.readAsBytes();
-      
-      // 2. Check size (Firestore docs have a 1MB limit, but let's be safe)
       if (bytes.lengthInBytes > 800000) {
         throw Exception("Image is too large. Please select a smaller photo (under 800KB).");
       }
-
-      // 3. Convert to Base64 string
       final base64String = base64Encode(bytes);
       final dataUrl = 'data:image/jpeg;base64,$base64String';
-      
-      // 4. Update Firestore
       await updatePhotoUrl(uid, dataUrl);
       return dataUrl;
     } catch (e) {
@@ -55,7 +96,6 @@ class UserService {
     }
   }
 
-  // Update photo URL
   Future<void> updatePhotoUrl(String uid, String photoUrl) async {
     await _firestore.collection('users').doc(uid).update({
       'photoUrl': photoUrl,

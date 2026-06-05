@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnxchange/models/review_model.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/edit_profile_screen.dart';
 import 'package:learnxchange/services/user_service.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  const ProfileScreen({super.key, this.userId});
 
   ImageProvider? _getProfileImage(String photoUrl) {
     if (photoUrl.isEmpty) return null;
@@ -23,27 +26,31 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final currentFirebaseUser = FirebaseAuth.instance.currentUser;
+    final targetUserId = userId ?? currentFirebaseUser?.uid;
+    final isOwnProfile = targetUserId == currentFirebaseUser?.uid;
+    
     final userService = UserService();
     final theme = Theme.of(context);
 
-    if (user == null) return const Scaffold(body: Center(child: Text("Not logged in")));
+    if (targetUserId == null) return const Scaffold(body: Center(child: Text("Not logged in")));
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isOwnProfile ? 'My Profile' : 'User Profile', style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
-          ),
+          if (isOwnProfile)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {},
+            ),
         ],
       ),
       body: StreamBuilder<UserModel>(
-        stream: userService.getUserData(user.uid),
+        stream: userService.getUserData(targetUserId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -80,18 +87,19 @@ class ProfileScreen extends StatelessWidget {
                             : null,
                       ),
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
+                    if (isOwnProfile)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                         ),
-                        child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -166,24 +174,30 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Edit Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => EditProfileScreen(user: userData)),
-                      );
-                    },
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                // Reviews Section
+                _buildReviewsSection(userService, userData.uid, theme),
+
+                if (isOwnProfile) ...[
+                  const SizedBox(height: 32),
+                  // Edit Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EditProfileScreen(user: userData)),
+                        );
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           );
@@ -226,6 +240,82 @@ class ProfileScreen extends StatelessWidget {
         label,
         style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
       ),
+    );
+  }
+
+  Widget _buildReviewsSection(UserService userService, String uid, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Reviews', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        const SizedBox(height: 16),
+        StreamBuilder<List<ReviewModel>>(
+          stream: userService.getUserReviews(uid),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Text('No reviews yet.', style: TextStyle(color: Colors.grey[400], fontStyle: FontStyle.italic));
+            }
+
+            final reviews = snapshot.data!;
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: reviews.length,
+              separatorBuilder: (context, index) => const Divider(height: 32),
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundImage: _getProfileImage(review.reviewerPhoto),
+                          child: review.reviewerPhoto.isEmpty ? const Icon(Icons.person, size: 18) : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(review.reviewerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                DateFormat('MMM d, yyyy').format(review.timestamp),
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              review.rating.toStringAsFixed(1),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (review.comment.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        review.comment,
+                        style: TextStyle(color: Colors.grey[700], height: 1.4),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }

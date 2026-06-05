@@ -405,46 +405,56 @@ class _MatchCardState extends State<_MatchCard> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.grey[100],
-                backgroundImage: _getProfileImage(widget.match.photoUrl),
-                child: widget.match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.match.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.match.rating.toStringAsFixed(1),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '(${widget.match.ratingCount})',
-                          style: TextStyle(color: Colors.grey[400], fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ],
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(userId: widget.match.uid),
                 ),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.favorite_border_rounded, color: Colors.grey),
-              ),
-            ],
+              );
+            },
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.grey[100],
+                  backgroundImage: _getProfileImage(widget.match.photoUrl),
+                  child: widget.match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.match.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.match.rating.toStringAsFixed(1),
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '(${widget.match.ratingCount})',
+                            style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.favorite_border_rounded, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
