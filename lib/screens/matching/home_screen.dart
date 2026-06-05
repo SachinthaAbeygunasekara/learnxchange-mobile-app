@@ -657,105 +657,146 @@ class _MatchCardState extends State<_MatchCard> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
+      child: Stack(
         children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProfileScreen(userId: widget.match.uid),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              );
-            },
-            child: Row(
+              ],
+            ),
+            child: Column(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.grey[100],
-                  backgroundImage: _getProfileImage(widget.match.photoUrl),
-                  child: widget.match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.match.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileScreen(userId: widget.match.uid),
                       ),
-                      Row(
-                        children: [
-                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.match.rating.toStringAsFixed(1),
-                            style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '(${widget.match.ratingCount})',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 11),
-                          ),
-                        ],
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.grey[100],
+                        backgroundImage: _getProfileImage(widget.match.photoUrl),
+                        child: widget.match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.match.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  widget.match.rating.toStringAsFixed(1),
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '(${widget.match.ratingCount})',
+                                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.favorite_border_rounded, color: Colors.grey),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1),
+                ),
+                Row(
+                  children: [
+                    _buildSkillBadge('Offers', matchingOffered, const Color(0xFF6366F1)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.swap_horiz, color: Colors.grey, size: 20),
+                    ),
+                    _buildSkillBadge('Wants', matchingWanted, const Color(0xFFEC4899)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSending ? null : () => _sendRequest(matchingWanted, matchingOffered),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isSending 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Send Exchange Request', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                 ),
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1),
-          ),
-          Row(
-            children: [
-              _buildSkillBadge('Offers', matchingOffered, const Color(0xFF6366F1)),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.swap_horiz, color: Colors.grey, size: 20),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
               ),
-              _buildSkillBadge('Wants', matchingWanted, const Color(0xFFEC4899)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSending ? null : () => _sendRequest(matchingWanted, matchingOffered),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, size: 12, color: Color(0xFF6366F1)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_calculateMatchScore()}% Match',
+                    style: const TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              child: _isSending 
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Send Exchange Request', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
       ),
     );
+  }
+
+  int _calculateMatchScore() {
+    int score = 0;
+    // Simple UI-side score display based on the same logic
+    for (var s in widget.match.offeredSkills) {
+      if (widget.currentUser.wantedSkills.contains(s)) score += 40;
+    }
+    for (var s in widget.currentUser.offeredSkills) {
+      if (widget.match.wantedSkills.contains(s)) score += 40;
+    }
+    // Add rating bonus
+    score += (widget.match.rating * 4).toInt();
+    return score > 100 ? 100 : score;
   }
 
   Widget _buildSkillBadge(String title, String skill, Color color) {
