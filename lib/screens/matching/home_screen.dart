@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/profile_screen.dart';
+import 'package:learnxchange/services/matching_service.dart';
 import 'package:learnxchange/services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -69,30 +71,50 @@ class _HomeScreenState extends State<HomeScreen> {
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
+  ImageProvider? _getProfileImage(String photoUrl) {
+    if (photoUrl.isEmpty) return null;
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final base64String = photoUrl.split(',').last;
+        return MemoryImage(base64Decode(base64String));
+      } catch (e) {
+        return null;
+      }
+    }
+    return NetworkImage(photoUrl);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final user = FirebaseAuth.instance.currentUser;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final matchingService = MatchingService();
 
     return SafeArea(
-      child: CustomScrollView(
-        slivers: [
-          // Custom Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-              child: StreamBuilder<UserModel>(
-                stream: UserService().getUserData(user?.uid ?? ''),
-                builder: (context, snapshot) {
-                  final name = snapshot.data?.name ?? user?.email?.split('@')[0] ?? 'User';
-                  return Row(
+      child: StreamBuilder<UserModel>(
+        stream: UserService().getUserData(firebaseUser?.uid ?? ''),
+        builder: (context, userSnapshot) {
+          if (userSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          final currentUser = userSnapshot.data;
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Custom Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hello, $name!',
+                            'Hello, ${currentUser?.name.split(' ')[0] ?? 'User'}!',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
@@ -116,116 +138,154 @@ class HomeView extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(color: theme.colorScheme.primary.withAlpha(50), width: 2),
                           ),
-                          child: const CircleAvatar(
+                          child: CircleAvatar(
                             radius: 24,
                             backgroundColor: Colors.white,
-                            child: Icon(Icons.logout_rounded, color: Color(0xFF6366F1)),
+                            backgroundImage: currentUser != null ? _getProfileImage(currentUser.photoUrl) : null,
+                            child: (currentUser == null || currentUser.photoUrl.isEmpty) 
+                                ? const Icon(Icons.logout_rounded, color: Color(0xFF6366F1)) 
+                                : null,
                           ),
                         ),
                       ),
                     ],
-                  );
-                }
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // Search Bar
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(5),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              // Search Bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search for skills or people...',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        icon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Categories Section
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Text(
+                        'Popular Categories',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 110,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          _buildCategoryItem(Icons.code_rounded, 'Coding', const Color(0xFF6366F1)),
+                          _buildCategoryItem(Icons.brush_rounded, 'Design', const Color(0xFFEC4899)),
+                          _buildCategoryItem(Icons.language_rounded, 'Language', const Color(0xFFF59E0B)),
+                          _buildCategoryItem(Icons.music_note_rounded, 'Music', const Color(0xFF10B981)),
+                          _buildCategoryItem(Icons.camera_alt_rounded, 'Photo', const Color(0xFF8B5CF6)),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search for skills or people...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    icon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1)),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
               ),
-            ),
-          ),
 
-          // Categories Section
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Text(
-                    'Popular Categories',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
+              // Matching Logic
+              if (currentUser != null)
+                FutureBuilder<List<UserModel>>(
+                  future: matchingService.findMatches(currentUser),
+                  builder: (context, matchSnapshot) {
+                    return SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty 
+                                    ? 'Perfect Matches Found!' 
+                                    : 'Recommended for You',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                                if (matchSnapshot.hasData && matchSnapshot.data!.isNotEmpty)
+                                  const Text(
+                                    'See All',
+                                    style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          
+                          if (matchSnapshot.connectionState == ConnectionState.waiting)
+                            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                          else if (matchSnapshot.hasError)
+                            Center(child: Text("Error loading matches: ${matchSnapshot.error}"))
+                          else if (!matchSnapshot.hasData || matchSnapshot.data!.isEmpty)
+                             Padding(
+                               padding: const EdgeInsets.all(24.0),
+                               child: Container(
+                                 padding: const EdgeInsets.all(16),
+                                 decoration: BoxDecoration(
+                                   color: Colors.indigo.withAlpha(10),
+                                   borderRadius: BorderRadius.circular(16),
+                                 ),
+                                 child: const Text(
+                                   "No direct matches found yet. Try adding more skills to your profile!",
+                                   textAlign: TextAlign.center,
+                                   style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.w500),
+                                 ),
+                               ),
+                             )
+                          else
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: matchSnapshot.data!.length,
+                              itemBuilder: (context, index) {
+                                final match = matchSnapshot.data![index];
+                                return _buildMatchCard(
+                                  match: match,
+                                  currentUser: currentUser,
+                                  theme: theme,
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                SizedBox(
-                  height: 110,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      _buildCategoryItem(Icons.code_rounded, 'Coding', const Color(0xFF6366F1)),
-                      _buildCategoryItem(Icons.brush_rounded, 'Design', const Color(0xFFEC4899)),
-                      _buildCategoryItem(Icons.language_rounded, 'Language', const Color(0xFFF59E0B)),
-                      _buildCategoryItem(Icons.music_note_rounded, 'Music', const Color(0xFF10B981)),
-                      _buildCategoryItem(Icons.camera_alt_rounded, 'Photo', const Color(0xFF8B5CF6)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // Top Matches Section
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Recommended for You',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  Text(
-                    'See All',
-                    style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return _buildMatchCard(
-                  name: 'Alex Johnson',
-                  offers: 'UI/UX Design',
-                  wants: 'Flutter Development',
-                  rating: 4.8,
-                );
-              },
-              childCount: 3,
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          );
+        }
       ),
     );
   }
@@ -254,11 +314,20 @@ class HomeView extends StatelessWidget {
   }
 
   Widget _buildMatchCard({
-    required String name,
-    required String offers,
-    required String wants,
-    required double rating,
+    required UserModel match,
+    required UserModel currentUser,
+    required ThemeData theme,
   }) {
+    // Find specific skill match for display
+    final matchingOffered = match.offeredSkills.firstWhere(
+      (s) => currentUser.wantedSkills.contains(s),
+      orElse: () => match.offeredSkills.first,
+    );
+    final matchingWanted = match.wantedSkills.firstWhere(
+      (s) => currentUser.offeredSkills.contains(s),
+      orElse: () => match.wantedSkills.first,
+    );
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       padding: const EdgeInsets.all(16),
@@ -280,7 +349,8 @@ class HomeView extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: Colors.grey[100],
-                child: const Icon(Icons.person, color: Colors.grey),
+                backgroundImage: _getProfileImage(match.photoUrl),
+                child: match.photoUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -288,7 +358,7 @@ class HomeView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      match.name,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     Row(
@@ -296,8 +366,13 @@ class HomeView extends StatelessWidget {
                         const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          rating.toString(),
+                          match.rating.toStringAsFixed(1),
                           style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${match.ratingCount})',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 11),
                         ),
                       ],
                     ),
@@ -316,12 +391,12 @@ class HomeView extends StatelessWidget {
           ),
           Row(
             children: [
-              _buildSkillBadge('Offers', offers, const Color(0xFF6366F1)),
+              _buildSkillBadge('Offers', matchingOffered, const Color(0xFF6366F1)),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Icon(Icons.swap_horiz_rounded, color: Colors.grey, size: 20),
               ),
-              _buildSkillBadge('Wants', wants, const Color(0xFFEC4899)),
+              _buildSkillBadge('Wants', matchingWanted, const Color(0xFFEC4899)),
             ],
           ),
           const SizedBox(height: 16),
