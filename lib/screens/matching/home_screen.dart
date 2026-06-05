@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/profile_screen.dart';
 import 'package:learnxchange/screens/sessions/requests_screen.dart';
+import 'package:learnxchange/screens/sessions/sessions_screen.dart';
 import 'package:learnxchange/screens/chat/chat_list_screen.dart';
 import 'package:learnxchange/services/matching_service.dart';
 import 'package:learnxchange/services/user_service.dart';
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const HomeView(),
+    const SessionsScreen(),
     const ChatListScreen(),
     const RequestsScreen(),
     const ProfileScreen(),
@@ -54,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.event_note_rounded), label: 'Sessions'),
             BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'Messages'),
             BottomNavigationBarItem(icon: Icon(Icons.swap_horiz_rounded), label: 'Requests'),
             BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
