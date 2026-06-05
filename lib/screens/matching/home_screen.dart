@@ -134,7 +134,28 @@ class HomeView extends StatelessWidget {
                       ),
                       GestureDetector(
                         onTap: () async {
-                          await FirebaseAuth.instance.signOut();
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Logout'),
+                              content: const Text('Are you sure you want to sign out?'),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            await FirebaseAuth.instance.signOut();
+                          }
                         },
                         child: Container(
                           decoration: BoxDecoration(
