@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnxchange/models/user_model.dart';
+import 'package:learnxchange/screens/profile/profile_screen.dart';
+import 'package:learnxchange/services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,160 +14,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  final List<Widget> _screens = [
+    const HomeView(),
+    const Center(child: Text('Discover Screen')),
+    const Center(child: Text('Requests Screen')),
+    const ProfileScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Custom Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello, Sachintha!',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          'Discover Skills',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () async {
-                        await FirebaseAuth.instance.signOut();
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.colorScheme.primary.withAlpha(50), width: 2),
-                        ),
-                        child: const CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.logout_rounded, color: Color(0xFF6366F1)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Search Bar
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(5),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search for skills or people...',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      icon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1)),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Categories Section
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Text(
-                      'Popular Categories',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 110,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        _buildCategoryItem(Icons.code_rounded, 'Coding', const Color(0xFF6366F1)),
-                        _buildCategoryItem(Icons.brush_rounded, 'Design', const Color(0xFFEC4899)),
-                        _buildCategoryItem(Icons.language_rounded, 'Language', const Color(0xFFF59E0B)),
-                        _buildCategoryItem(Icons.music_note_rounded, 'Music', const Color(0xFF10B981)),
-                        _buildCategoryItem(Icons.camera_alt_rounded, 'Photo', const Color(0xFF8B5CF6)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Top Matches Section
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Recommended for You',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    Text(
-                      'See All',
-                      style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return _buildMatchCard(
-                    name: 'Alex Johnson',
-                    offers: 'UI/UX Design',
-                    wants: 'Flutter Development',
-                    rating: 4.8,
-                  );
-                },
-                childCount: 3,
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
-      ),
+      body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -194,13 +55,178 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _selectedIndex == 0 ? FloatingActionButton(
         onPressed: () {},
         backgroundColor: const Color(0xFF6366F1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
-      ),
+      ) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+}
+
+class HomeView extends StatelessWidget {
+  const HomeView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          // Custom Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+              child: StreamBuilder<UserModel>(
+                stream: UserService().getUserData(user?.uid ?? ''),
+                builder: (context, snapshot) {
+                  final name = snapshot.data?.name ?? user?.email?.split('@')[0] ?? 'User';
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hello, $name!',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Discover Skills',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          await FirebaseAuth.instance.signOut();
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: theme.colorScheme.primary.withAlpha(50), width: 2),
+                          ),
+                          child: const CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white,
+                            child: Icon(Icons.logout_rounded, color: Color(0xFF6366F1)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              ),
+            ),
+          ),
+
+          // Search Bar
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search for skills or people...',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    icon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1)),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Categories Section
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Text(
+                    'Popular Categories',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+                SizedBox(
+                  height: 110,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildCategoryItem(Icons.code_rounded, 'Coding', const Color(0xFF6366F1)),
+                      _buildCategoryItem(Icons.brush_rounded, 'Design', const Color(0xFFEC4899)),
+                      _buildCategoryItem(Icons.language_rounded, 'Language', const Color(0xFFF59E0B)),
+                      _buildCategoryItem(Icons.music_note_rounded, 'Music', const Color(0xFF10B981)),
+                      _buildCategoryItem(Icons.camera_alt_rounded, 'Photo', const Color(0xFF8B5CF6)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Top Matches Section
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recommended for You',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    'See All',
+                    style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                return _buildMatchCard(
+                  name: 'Alex Johnson',
+                  offers: 'UI/UX Design',
+                  wants: 'Flutter Development',
+                  rating: 4.8,
+                );
+              },
+              childCount: 3,
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
     );
   }
 
