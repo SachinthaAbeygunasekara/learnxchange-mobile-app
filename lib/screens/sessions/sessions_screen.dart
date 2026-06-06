@@ -5,7 +5,6 @@ import 'package:learnxchange/models/session_model.dart';
 import 'package:learnxchange/services/session_service.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/services/user_service.dart';
-import 'package:learnxchange/services/request_service.dart';
 import 'package:learnxchange/models/request_model.dart';
 import 'package:learnxchange/widgets/rating_dialog.dart';
 import 'package:intl/intl.dart';

@@ -5,6 +5,7 @@ import 'package:learnxchange/models/review_model.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/edit_profile_screen.dart';
 import 'package:learnxchange/services/user_service.dart';
+import 'package:learnxchange/screens/profile/dashboard_screen.dart';
 import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -42,11 +43,22 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          if (isOwnProfile)
+          if (isOwnProfile) ...[
+            IconButton(
+              icon: const Icon(Icons.dashboard_customize_outlined, color: Color(0xFF6366F1)),
+              tooltip: 'Dashboard',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.settings_outlined),
               onPressed: () {},
             ),
+          ],
         ],
       ),
       body: StreamBuilder<UserModel>(
