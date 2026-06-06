@@ -6,6 +6,7 @@ import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/profile/edit_profile_screen.dart';
 import 'package:learnxchange/services/user_service.dart';
 import 'package:learnxchange/screens/profile/dashboard_screen.dart';
+import 'package:learnxchange/screens/profile/admin_dashboard_screen.dart';
 import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -43,22 +44,43 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          if (isOwnProfile) ...[
-            IconButton(
-              icon: const Icon(Icons.dashboard_customize_outlined, color: Color(0xFF6366F1)),
-              tooltip: 'Dashboard',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          if (isOwnProfile)
+            StreamBuilder<UserModel>(
+              stream: userService.getUserData(targetUserId),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                final user = snapshot.data!;
+                return Row(
+                  children: [
+                    if (user.role == 'admin')
+                      IconButton(
+                        icon: const Icon(Icons.admin_panel_settings_outlined, color: Colors.redAccent),
+                        tooltip: 'Admin Dashboard',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                          );
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.dashboard_customize_outlined, color: Color(0xFF6366F1)),
+                      tooltip: 'Dashboard',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () {},
+                    ),
+                  ],
                 );
-              },
+              }
             ),
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {},
-            ),
-          ],
         ],
       ),
       body: StreamBuilder<UserModel>(

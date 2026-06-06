@@ -102,4 +102,24 @@ class UserService {
       'photoUrl': photoUrl,
     });
   }
+
+  // Admin Methods
+  Stream<List<UserModel>> getAllUsers() {
+    return _firestore.collection('users').snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
+  }
+
+  Future<void> toggleUserSuspension(String uid, bool suspend) async {
+    await _firestore.collection('users').doc(uid).update({
+      'isSuspended': suspend,
+    });
+  }
+
+  Stream<List<ReviewModel>> getAllReviews() {
+    // This is tricky because reviews are in subcollections.
+    // For a simple admin dashboard, we might want to use a collection group query or just fetch per user.
+    // For now, let's use collection group if enabled, or just provide a placeholder if it's too complex for this project structure.
+    return _firestore.collectionGroup('reviews').orderBy('timestamp', descending: true).snapshots().map(
+        (snapshot) => snapshot.docs.map((doc) => ReviewModel.fromMap(doc.data())).toList());
+  }
 }

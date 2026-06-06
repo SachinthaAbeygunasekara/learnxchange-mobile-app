@@ -11,6 +11,7 @@ class UserModel {
   final double rating;
   final int ratingCount;
   final String role;
+  final bool isSuspended;
   final DateTime? createdAt;
 
   UserModel({
@@ -24,6 +25,7 @@ class UserModel {
     required this.rating,
     required this.ratingCount,
     required this.role,
+    this.isSuspended = false,
     this.createdAt,
   });
 
@@ -39,6 +41,7 @@ class UserModel {
       'rating': rating,
       'ratingCount': ratingCount,
       'role': role,
+      'isSuspended': isSuspended,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
@@ -55,6 +58,7 @@ class UserModel {
       rating: (map['rating'] ?? 0).toDouble(),
       ratingCount: map['ratingCount'] ?? 0,
       role: map['role'] ?? 'user',
+      isSuspended: map['isSuspended'] ?? false,
       createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
     );
   }

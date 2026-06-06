@@ -35,4 +35,15 @@ class SessionService {
   Future<void> deleteSession(String sessionId) async {
     await _firestore.collection('sessions').doc(sessionId).delete();
   }
+
+  // Admin Methods
+  Stream<List<SessionModel>> getAllSessions() {
+    return _firestore
+        .collection('sessions')
+        .orderBy('scheduledDateTime', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SessionModel.fromMap(doc.data()))
+            .toList());
+  }
 }

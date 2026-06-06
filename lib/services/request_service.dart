@@ -98,4 +98,15 @@ class RequestService {
       field: true,
     });
   }
+
+  // Admin Methods
+  Stream<List<RequestModel>> getAllRequests() {
+    return _firestore
+        .collection('requests')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => RequestModel.fromMap(doc.data()))
+            .toList());
+  }
 }
