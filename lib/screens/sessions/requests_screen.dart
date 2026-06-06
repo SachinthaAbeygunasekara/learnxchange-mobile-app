@@ -10,7 +10,6 @@ import 'package:learnxchange/services/session_service.dart';
 import 'package:intl/intl.dart';
 import 'package:learnxchange/widgets/rating_dialog.dart';
 import 'package:learnxchange/services/user_service.dart';
-import 'package:learnxchange/models/user_model.dart';
 
 class RequestsScreen extends StatelessWidget {
   const RequestsScreen({super.key});
