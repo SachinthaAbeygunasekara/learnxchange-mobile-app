@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
+import 'package:learnxchange/screens/auth/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -277,7 +278,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(
-                                      onPressed: () {},
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                                        );
+                                      },
                                       child: Text(
                                         'Forgot Password?',
                                         style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
