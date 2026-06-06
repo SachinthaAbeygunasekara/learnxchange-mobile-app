@@ -9,8 +9,22 @@ import 'package:learnxchange/models/request_model.dart';
 import 'package:learnxchange/widgets/rating_dialog.dart';
 import 'package:intl/intl.dart';
 
-class SessionsScreen extends StatelessWidget {
+class SessionsScreen extends StatefulWidget {
   const SessionsScreen({super.key});
+
+  @override
+  State<SessionsScreen> createState() => _SessionsScreenState();
+}
+
+class _SessionsScreenState extends State<SessionsScreen> {
+  String _searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,57 +32,133 @@ class SessionsScreen extends StatelessWidget {
     final sessionService = SessionService();
     final userService = UserService();
 
-    return StreamBuilder<UserModel>(
-      stream: userService.getUserData(uid),
-      builder: (context, userSnapshot) {
-        return Scaffold(
-          backgroundColor: Colors.grey[50],
-          appBar: AppBar(
-            title: const Text('My Sessions', style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.white,
-            elevation: 0,
-          ),
-          body: StreamBuilder<List<SessionModel>>(
-            stream: sessionService.getUserSessions(uid),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return _buildErrorState(snapshot.error.toString());
-              }
-              if (snapshot.connectionState == ConnectionState.waiting || !userSnapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+    return DefaultTabController(
+      length: 3,
+      child: StreamBuilder<UserModel>(
+        stream: userService.getUserData(uid),
+        builder: (context, userSnapshot) {
+          return Scaffold(
+            backgroundColor: Colors.grey[50],
+            appBar: AppBar(
+              title: const Text('My Sessions', style: TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(110),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Container(
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                          decoration: InputDecoration(
+                            hintText: 'Search sessions...',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            suffixIcon: _searchQuery.isNotEmpty 
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = "");
+                                  },
+                                ) 
+                              : null,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const TabBar(
+                      labelColor: Color(0xFF6366F1),
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: Color(0xFF6366F1),
+                      tabs: [
+                        Tab(text: 'Upcoming'),
+                        Tab(text: 'Completed'),
+                        Tab(text: 'Cancelled'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            body: StreamBuilder<List<SessionModel>>(
+              stream: sessionService.getUserSessions(uid),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
+                if (snapshot.connectionState == ConnectionState.waiting || !userSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              final sessions = snapshot.data!;
-              if (sessions.isEmpty) {
-                return _buildEmptyState();
-              }
+                final allSessions = snapshot.data ?? [];
+                final currentUser = userSnapshot.data!;
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: sessions.length,
-                itemBuilder: (context, index) {
-                  final session = sessions[index];
-                  return _SessionCard(
-                    session: session, 
-                    currentUser: userSnapshot.data!,
-                  );
-                },
-              );
-            },
-          ),
-        );
-      }
+                return TabBarView(
+                  children: [
+                    _buildSessionList(allSessions, SessionStatus.scheduled, currentUser),
+                    _buildSessionList(allSessions, SessionStatus.completed, currentUser),
+                    _buildSessionList(allSessions, SessionStatus.cancelled, currentUser),
+                  ],
+                );
+              },
+            ),
+          );
+        }
+      ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildSessionList(List<SessionModel> sessions, SessionStatus status, UserModel currentUser) {
+    final filtered = sessions.where((s) {
+      final matchesStatus = s.status == status;
+      final matchesSearch = s.title.toLowerCase().contains(_searchQuery) || 
+                           (s.notes.toLowerCase().contains(_searchQuery));
+      return matchesStatus && matchesSearch;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildEmptyState(status);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        return _SessionCard(
+          session: filtered[index], 
+          currentUser: currentUser,
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(SessionStatus status) {
+    String message = "No upcoming sessions";
+    IconData icon = Icons.event_available_rounded;
+    
+    if (status == SessionStatus.completed) {
+      message = "No completed sessions yet";
+      icon = Icons.check_circle_outline_rounded;
+    } else if (status == SessionStatus.cancelled) {
+      message = "No cancelled sessions";
+      icon = Icons.event_busy_rounded;
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey[300]),
+          Icon(icon, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text('No sessions scheduled yet.', style: TextStyle(color: Colors.grey[500])),
+          Text(message, style: TextStyle(color: Colors.grey[500])),
         ],
       ),
     );
