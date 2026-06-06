@@ -8,6 +8,7 @@ import 'package:learnxchange/services/user_service.dart';
 import 'package:learnxchange/models/request_model.dart';
 import 'package:learnxchange/widgets/rating_dialog.dart';
 import 'package:intl/intl.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 
 class SessionsScreen extends StatefulWidget {
   const SessionsScreen({super.key});
@@ -197,6 +198,18 @@ class _SessionCard extends StatefulWidget {
 class _SessionCardState extends State<_SessionCard> {
   bool _isLoading = false;
 
+  void _addToCalendar() {
+    final Event event = Event(
+      title: widget.session.title,
+      description: widget.session.notes.isEmpty ? 'Skill exchange session via LearnXchange' : widget.session.notes,
+      location: 'LearnXchange App',
+      startDate: widget.session.scheduledDateTime,
+      endDate: widget.session.scheduledDateTime.add(const Duration(hours: 1)),
+    );
+
+    Add2Calendar.addEvent2Cal(event);
+  }
+
   Future<void> _completeAndRate() async {
     setState(() => _isLoading = true);
     try {
@@ -332,6 +345,22 @@ class _SessionCardState extends State<_SessionCard> {
             ),
           ],
           const SizedBox(height: 16),
+          if (widget.session.status == SessionStatus.scheduled) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _addToCalendar,
+                icon: const Icon(Icons.calendar_today_rounded, size: 18),
+                label: const Text('Add to Calendar'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: const BorderSide(color: Color(0xFF6366F1)),
+                  foregroundColor: const Color(0xFF6366F1),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               if (widget.session.status == SessionStatus.scheduled) ...[
@@ -378,11 +407,11 @@ class _SessionCardState extends State<_SessionCard> {
                             color: Colors.blue.withAlpha(10),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.blue, size: 16),
-                              SizedBox(width: 8),
+                              const Icon(Icons.check_circle_rounded, color: Colors.blue, size: 16),
+                              const SizedBox(width: 8),
                               Text('Experience Rated', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                             ],
                           ),
