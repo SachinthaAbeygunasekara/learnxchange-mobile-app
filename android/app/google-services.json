@@ -12,7 +12,20 @@
           "package_name": "com.example.learnxchange"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1047451116542-irvv25odn2s0p7g5vb4omrrm3hcfbi44.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.learnxchange",
+            "certificate_hash": "f63a6884cfb301d1eb5ce9159f26dab91966794e"
+          }
+        },
+        {
+          "client_id": "1047451116542-fvotm17vec5baanuqotjqvb5stepr0j8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDT_6QWyeR4swmBm_MdkylDEsH6LwAWev8"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1047451116542-fvotm17vec5baanuqotjqvb5stepr0j8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1047451116542-34gg5nb0s169u353af0jvtclr81fmprf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.learnxchange"
+              }
+            }
+          ]
         }
       }
     }

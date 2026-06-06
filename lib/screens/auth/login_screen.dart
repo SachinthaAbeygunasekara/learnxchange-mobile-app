@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnxchange/models/user_model.dart';
 import 'package:learnxchange/screens/auth/forgot_password_screen.dart';
+import 'package:learnxchange/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -68,6 +69,29 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     });
     _fadeController.reset();
     _fadeController.forward();
+  }
+
+  Future<void> _handleSocialSignIn(Future<UserCredential?> Function() signInMethod) async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await signInMethod();
+      if (user == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to sign in: $e'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _submitForm() async {
@@ -338,11 +362,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                _buildCircularSocial(Icons.g_mobiledata_rounded, Colors.red[400]!),
-                                const SizedBox(width: 20),
-                                _buildCircularSocial(Icons.apple_rounded, Colors.black),
-                                const SizedBox(width: 20),
-                                _buildCircularSocial(Icons.facebook_rounded, Colors.blue[800]!),
+                                _buildCircularSocial(
+                                  Icons.g_mobiledata_rounded, 
+                                  Colors.red[400]!,
+                                  onTap: () => _handleSocialSignIn(AuthService().signInWithGoogle),
+                                ),
                               ],
                             ),
                           ],
@@ -483,9 +507,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildCircularSocial(IconData icon, Color color) {
+  Widget _buildCircularSocial(IconData icon, Color color, {required VoidCallback onTap}) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(12),
