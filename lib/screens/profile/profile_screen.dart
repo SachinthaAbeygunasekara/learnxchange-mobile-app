@@ -73,10 +73,6 @@ class ProfileScreen extends StatelessWidget {
                         );
                       },
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () {},
-                    ),
                   ],
                 );
               }
