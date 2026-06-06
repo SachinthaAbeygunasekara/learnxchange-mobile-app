@@ -6,7 +6,6 @@ import 'package:learnxchange/models/request_model.dart';
 import 'package:learnxchange/services/user_service.dart';
 import 'package:learnxchange/services/session_service.dart';
 import 'package:learnxchange/services/request_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});

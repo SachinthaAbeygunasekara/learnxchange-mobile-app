@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:learnxchange/firebase_options.dart';
 import 'package:learnxchange/screens/matching/home_screen.dart';
 import 'package:learnxchange/screens/auth/login_screen.dart';
+import 'package:learnxchange/services/user_service.dart';
+import 'package:learnxchange/models/user_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +53,46 @@ class AuthGate extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return StreamBuilder<UserModel>(
+            stream: UserService().getUserData(snapshot.data!.uid),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              if (userSnapshot.hasData && userSnapshot.data!.isSuspended) {
+                return Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.block_rounded, color: Colors.red, size: 80),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Account Suspended',
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Your account has been suspended by an administrator. Please contact support if you believe this is a mistake.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            onPressed: () => FirebaseAuth.instance.signOut(),
+                            child: const Text('Log Out'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const HomeScreen();
+            },
+          );
         }
         return const LoginScreen();
       },
